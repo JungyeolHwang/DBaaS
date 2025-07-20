@@ -214,8 +214,9 @@ curl -X DELETE http://localhost:3000/instances/my-postgres
 - DB 사용자 관리
 - Audit 로그
 - 사용량 기반 과금
+- ✅ **멀티 테넌트 지원**: 완전한 테넌트 격리 및 리소스 관리
 
-## 📚 API 엔드포인트
+## �� API 엔드포인트
 
 ### 기본 정보
 - **Base URL**: `http://localhost:3000`
@@ -684,3 +685,65 @@ kubectl logs -f <cluster-name>-0 -n <namespace>
 ## 📞 연락처
 
 개발 문의 및 기여는 언제든 환영합니다! 
+
+## 🏢 멀티 테넌트 지원 (예정)
+
+### 🎯 멀티 테넌트 아키텍처
+
+현재는 기본적인 네임스페이스 격리만 지원하지만, 향후 완전한 멀티 테넌트 시스템을 구현할 예정입니다.
+
+#### 현재 구현된 격리 기능
+- ✅ **네임스페이스 격리**: 각 DB 인스턴스별 독립된 환경
+- ✅ **사용자별 네임스페이스 격리**: 기본적인 리소스 격리
+- ✅ **PVC 격리**: 테넌트별 독립된 스토리지
+
+#### 향후 구현 예정 기능
+```yaml
+# 테넌트별 리소스 격리 (예정)
+tenants:
+  tenant-a:
+    namespace: "tenant-a"
+    resourceQuota:
+      cpu: "4"
+      memory: "8Gi"
+      storage: "100Gi"
+    networkPolicy:
+      ingress: ["tenant-a-apps"]
+      egress: ["internet"]
+    billing:
+      plan: "premium"
+      limits:
+        instances: 10
+        storage: "500Gi"
+```
+
+### 📋 테넌트 격리 레벨
+
+#### 1. 네트워크 격리
+- **NetworkPolicy**: 테넌트 간 네트워크 통신 제한
+- **Ingress/Egress 규칙**: 허용된 서비스만 접근 가능
+- **Service Mesh**: Istio 기반 고급 라우팅
+
+#### 2. 리소스 격리
+- **ResourceQuota**: CPU, Memory, Storage 할당량 관리
+- **LimitRange**: Pod별 리소스 제한 설정
+- **PriorityClass**: 테넌트별 우선순위 관리
+
+#### 3. 데이터 격리
+- **네임스페이스 격리**: 완전한 Kubernetes 리소스 분리
+- **PVC 격리**: 테넌트별 독립된 스토리지 볼륨
+- **Secret 격리**: 테넌트별 독립된 인증 정보
+
+### 📈 확장성 및 성능
+
+#### 수평 확장
+- **다중 클러스터**: 테넌트별 클러스터 분산
+- **지역 분산**: 글로벌 테넌트 서비스
+- **자동 스케일링**: 테넌트별 자동 리소스 조정
+
+#### 성능 최적화
+- **캐싱 전략**: 테넌트별 독립된 캐시
+- **부하 분산**: 테넌트별 트래픽 분산
+- **리소스 예약**: 프리미엄 테넌트용 리소스 예약
+
+--- 
