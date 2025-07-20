@@ -1,0 +1,34 @@
+{
+  "name": "mini-dbaas-backend",
+  "version": "1.0.0",
+  "description": "Node.js backend for Mini DBaaS platform",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "dbaas",
+    "kubernetes",
+    "postgresql",
+    "mysql",
+    "helm"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@kubernetes/client-node": "^0.20.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "js-yaml": "^4.1.0",
+    "pg": "^8.16.3",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2"
+  }
+}

@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: production-ha-credentials
+  namespace: dbaas-production-ha
+type: kubernetes.io/basic-auth
+data:
+  username: YWRtaW4=
+  password: c2VjdXJlLXBhc3N3b3JkMTIz
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: production-ha-cluster
+  namespace: dbaas-production-ha
+spec:
+  instances: 3
+  imageName: postgres:15-alpine
+  postgresql:
+    parameters:
+      max_connections: '200'
+      shared_buffers: 128MB
+      effective_cache_size: 512MB
+      maintenance_work_mem: 64MB
+      checkpoint_completion_target: '0.9'
+      wal_buffers: 16MB
+  bootstrap:
+    initdb:
+      database: proddb
+      owner: admin
+      secret:
+        name: production-ha-credentials
+  storage:
+    size: 2Gi
+    storageClass: standard
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: 500m

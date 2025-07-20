@@ -1,0 +1,74 @@
+# MySQL Local Chart Values
+# DBaaS용 MySQL 설정
+
+# MySQL 이미지 설정
+image:
+  repository: mysql
+  tag: "8.0"
+  pullPolicy: IfNotPresent
+
+# MySQL 인증 설정  
+auth:
+  rootPassword: "defaultpassword"
+  database: "defaultdb"
+  username: "mysql"
+
+# 서비스 설정
+service:
+  type: ClusterIP
+  port: 3306
+
+# 스토리지 설정 - CSI 기반으로 변경
+persistence:
+  enabled: true
+  storageClass: "csi-hostpath-sc"  # CSI StorageClass 사용
+  size: 1Gi
+  accessModes:
+    - ReadWriteOnce
+
+# 백업/스냅샷 설정
+backup:
+  enabled: true
+  volumeSnapshotClassName: "csi-hostpath-snapclass"
+  retentionPolicy: "7"  # 7일간 보관
+
+# 리소스 설정
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# MySQL 설정
+mysql:
+  maxConnections: 151
+  innodb_buffer_pool_size: "128M"
+
+# 초기화 스크립트 (선택사항)
+initdbScripts: {}
+
+# 보안 컨텍스트
+securityContext:
+  runAsUser: 999
+  runAsGroup: 999
+
+podSecurityContext:
+  fsGroup: 999
+
+# 레플리카 개수
+replicaCount: 1
+
+# 네임스페이스 오버라이드
+nameOverride: ""
+fullnameOverride: ""
+
+# 서비스 어카운트
+serviceAccount:
+  create: true
+  name: ""
+
+# 어노테이션 및 라벨
+podAnnotations: {}
+podLabels: {}

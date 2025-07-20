@@ -1,0 +1,18 @@
+MariaDB has been deployed successfully!
+
+To connect to your MariaDB database:
+
+1. Get the database password:
+   kubectl get secret --namespace {{ .Release.Namespace }} {{ include "mariadb-local.fullname" . }}-secret -o jsonpath="{.data.mysql-root-password}" | base64 --decode
+
+2. Connect to the database:
+   kubectl run mariadb-client --rm --tty -i --restart='Never' --namespace {{ .Release.Namespace }} --image mariadb:10.9 --env="MYSQL_PWD=$MYSQL_ROOT_PASSWORD" --command -- mysql -h {{ include "mariadb-local.fullname" . }} -u root -p{{ .Values.auth.database }}
+
+3. Or use port forwarding:
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "mariadb-local.fullname" . }} 3306:3306
+
+Database Information:
+- Host: {{ include "mariadb-local.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+- Port: {{ .Values.service.port }}
+- Database: {{ .Values.auth.database }}
+- Username: root

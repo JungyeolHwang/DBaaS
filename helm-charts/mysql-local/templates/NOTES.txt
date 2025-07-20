@@ -1,0 +1,18 @@
+MySQL has been deployed successfully!
+
+To connect to your MySQL database:
+
+1. Get the database password:
+   kubectl get secret --namespace {{ .Release.Namespace }} {{ include "mysql-local.fullname" . }}-secret -o jsonpath="{.data.mysql-root-password}" | base64 --decode
+
+2. Connect to the database:
+   kubectl run mysql-client --rm --tty -i --restart='Never' --namespace {{ .Release.Namespace }} --image mysql:8.0 --env="MYSQL_PWD=$MYSQL_ROOT_PASSWORD" --command -- mysql -h {{ include "mysql-local.fullname" . }} -u root -p{{ .Values.auth.database }}
+
+3. Or use port forwarding:
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "mysql-local.fullname" . }} 3306:3306
+
+Database Information:
+- Host: {{ include "mysql-local.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+- Port: {{ .Values.service.port }}
+- Database: {{ .Values.auth.database }}
+- Username: root
