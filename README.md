@@ -8,14 +8,14 @@ Node.js + Kubernetes 기반의 로컬 데이터베이스 서비스 플랫폼
 ![Helm](https://img.shields.io/badge/Helm-v3.18.4-blue)
 ![Docker](https://img.shields.io/badge/Docker-Required-blue)
 
-> 🎉 **2025-07-19 업데이트**: CSI 백업/복구 시스템 완성! Aurora 스타일 무중단 백업 및 빠른 복구 지원
+> 🎉 **2025-01-27 업데이트**: Zalando PostgreSQL Operator 기반 HA 클러스터로 전환 완료! 컨트롤러 리팩토링으로 코드 구조 개선
 
 ## 🏗️ 아키텍처 개요
 
 ```
 사용자 요청 (CLI / UI)
          ↓
-Node.js API 서버 (Fastify / Express)
+Node.js API 서버 (Express)
 - DB 인스턴스 생성/삭제/조회 API
 - YAML 템플릿 생성
 - kubectl/Helm으로 배포 명령
@@ -34,18 +34,17 @@ CSI VolumeSnapshot (DB 무관)
 - 빠른 복구 (30-60초)
 - PostgreSQL/MySQL/MariaDB 공통 지원
          ↓
-🐘 PostgreSQL HA 클러스터 (Operator 기반)
-CloudNativePG Operator
-- 자동 Failover (15초 내)
-- Primary + 2 Standby (3개 노드)
-- 읽기 부하 분산 (RW/RO/R 서비스)
+🐘 PostgreSQL HA 클러스터 (Zalando Operator 기반)
+Zalando PostgreSQL Operator
+- 자동 Failover (장애 감지 시)
+- Primary + Standby (3개 노드)
+- 읽기 부하 분산 (Master/Replica 서비스)
 - 무중단 고가용성 서비스
          ↓
 Prometheus + Grafana
 - CPU, Memory, Query 성능 지표
 - PostgreSQL / MySQL Exporter
 ```
-
 
 ## 🚀 빠른 시작
 
@@ -134,7 +133,7 @@ curl -X DELETE http://localhost:3000/instances/my-postgres
 ./scripts/test-api.sh
 ```
 
-## ✅ 현재 상태 (2025-07-19)
+## ✅ 현재 상태 (2025-01-27)
 
 ### 🔥 완료된 기능
 - ✅ **완전한 프로젝트 구조**: 사용자 규칙에 따른 체계적 디렉토리 구성
@@ -145,9 +144,10 @@ curl -X DELETE http://localhost:3000/instances/my-postgres
 - ✅ **네임스페이스 격리**: 각 DB 인스턴스별 독립된 환경
 - ✅ **자동화 스크립트**: 환경 설정 및 API 테스트 스크립트
 - ✅ **CSI 백업/복구 시스템**: Aurora 스타일 무중단 백업 및 빠른 복구
-- ✅ **PostgreSQL HA 클러스터**: CloudNativePG Operator 기반 고가용성 클러스터
-- ✅ **자동 Failover**: 15초 내 장애 감지 및 자동 복구
-- ✅ **읽기 부하 분산**: RW/RO/R/Any 서비스로 성능 최적화
+- ✅ **PostgreSQL HA 클러스터**: Zalando PostgreSQL Operator 기반 고가용성 클러스터
+- ✅ **자동 Failover**: 장애 감지 시 자동 복구
+- ✅ **읽기 부하 분산**: Master/Replica 서비스로 성능 최적화
+- ✅ **컨트롤러 리팩토링**: 비즈니스 로직과 라우트 분리로 코드 구조 개선
 
 ### 🎯 테스트 완료된 시나리오
 - ✅ PostgreSQL 인스턴스 생성/조회/삭제
@@ -158,22 +158,28 @@ curl -X DELETE http://localhost:3000/instances/my-postgres
 - ✅ CSI VolumeSnapshot 백업 생성 (5-10초)
 - ✅ 백업에서 새 인스턴스 복구 (30초)
 - ✅ 백업 시점 데이터 정확성 검증
-- ✅ PostgreSQL HA 클러스터 생성 및 관리
+- ✅ Zalando PostgreSQL HA 클러스터 생성 및 관리
 - ✅ 자동 Failover 테스트 (Primary Pod 삭제 시)
-- ✅ 서비스별 연결 테스트 (RW/RO/R/Any)
+- ✅ 서비스별 연결 테스트 (Master/Replica)
 
+### 🔄 최근 변경사항 (2025-01-27)
+- ✅ **CloudNativePG → Zalando Operator 전환**: 더 안정적인 PostgreSQL HA 클러스터
+- ✅ **컨트롤러 패턴 도입**: `HAClusterController`로 비즈니스 로직 분리
+- ✅ **코드 구조 개선**: 라우트는 URL 매핑만, 컨트롤러는 비즈니스 로직만 담당
+- ✅ **유지보수성 향상**: 관심사 분리로 테스트 및 확장 용이
 
 ## 🛠️ 기술 스택
 
 - **백엔드**: Node.js (Express)
 - **오케스트레이션**: Kubernetes + Helm (Bitnami Charts)
 - **데이터베이스**: PostgreSQL, MySQL, MariaDB
-- **고가용성**: CloudNativePG Operator (PostgreSQL HA)
+- **고가용성**: Zalando PostgreSQL Operator (PostgreSQL HA)
 - **백업/복구**: CSI VolumeSnapshot (hostpath-driver)
 - **모니터링**: 실시간 Pod/Helm 상태 추적
 - **스토리지**: PVC (minikube hostPath)
 - **클러스터**: minikube (로컬 개발용)
 - **자동화**: Bash 스크립트 (setup.sh, test-api.sh)
+- **아키텍처**: MVC 패턴 (Controller-Service 분리)
 
 ## 📋 개발 로드맵
 
@@ -182,8 +188,9 @@ curl -X DELETE http://localhost:3000/instances/my-postgres
 - [x] Helm 차트 통합
 - [x] 기본 DB 인스턴스 배포 테스트
 - [x] CSI 백업/복구 기능
-- [x] PostgreSQL HA 클러스터 (CloudNativePG Operator)
+- [x] PostgreSQL HA 클러스터 (Zalando PostgreSQL Operator)
 - [x] 자동 Failover 및 부하 분산
+- [x] 컨트롤러 리팩토링 (MVC 패턴)
 - [ ] MySQL HA 클러스터 (Percona XtraDB Operator)
 - [ ] 모니터링 설정 (Prometheus + Grafana)
 - [ ] 웹 UI 개발
@@ -193,7 +200,7 @@ curl -X DELETE http://localhost:3000/instances/my-postgres
 
 ### 기본 기능
 - DB 인스턴스 생성/삭제/조회
-- PostgreSQL HA 클러스터 (CloudNativePG Operator)
+- PostgreSQL HA 클러스터 (Zalando PostgreSQL Operator)
 - CSI VolumeSnapshot 백업/복구
 - 리소스 모니터링
 - 사용자별 네임스페이스 격리
@@ -226,14 +233,13 @@ curl -X DELETE http://localhost:3000/instances/my-postgres
 | `GET` | `/instances/:name/connection` | 연결 정보 조회 | - |
 | `DELETE` | `/instances/:name` | 인스턴스 삭제 | - |
 
-### HA 클러스터 API (PostgreSQL 전용)
+### HA 클러스터 API (Zalando PostgreSQL 전용)
 
 | 메서드 | 경로 | 설명 | 요청 예시 |
 |--------|------|------|-----------|
-| `POST` | `/ha-clusters/postgresql` | PostgreSQL HA 클러스터 생성 | [아래 참조](#postgresql-ha-클러스터-생성) |
+| `POST` | `/ha-clusters/zalando-postgresql` | Zalando PostgreSQL HA 클러스터 생성 | [아래 참조](#zalando-postgresql-ha-클러스터-생성) |
 | `GET` | `/ha-clusters` | 모든 HA 클러스터 목록 | - |
 | `GET` | `/ha-clusters/:name/status` | HA 클러스터 상태 조회 | - |
-| `POST` | `/ha-clusters/:name/failover` | 수동 Failover 트리거 | - |
 | `DELETE` | `/ha-clusters/:name` | HA 클러스터 삭제 | - |
 
 ### 인스턴스 생성
@@ -279,7 +285,7 @@ curl -X DELETE http://localhost:3000/instances/my-postgres
 }
 ```
 
-### PostgreSQL HA 클러스터 생성
+### Zalando PostgreSQL HA 클러스터 생성
 
 #### 기본 HA 클러스터 (3개 노드)
 ```json
@@ -289,7 +295,7 @@ curl -X DELETE http://localhost:3000/instances/my-postgres
   "config": {
     "replicas": 3,
     "database": "testdb",
-    "username": "dbuser",
+    "username": "admin",
     "password": "postgres123",
     "storage": "1Gi",
     "resources": {
@@ -314,7 +320,7 @@ curl -X DELETE http://localhost:3000/instances/my-postgres
   "config": {
     "replicas": 5,
     "database": "production",
-    "username": "produser",
+    "username": "admin",
     "password": "super-secure-password",
     "storage": "10Gi",
     "maxConnections": 500,
@@ -336,9 +342,9 @@ curl -X DELETE http://localhost:3000/instances/my-postgres
 
 ### HA 클러스터 사용 예시
 
-#### 1. PostgreSQL HA 클러스터 생성
+#### 1. Zalando PostgreSQL HA 클러스터 생성
 ```bash
-curl -X POST http://localhost:3000/ha-clusters/postgresql \
+curl -X POST http://localhost:3000/ha-clusters/zalando-postgresql \
   -H "Content-Type: application/json" \
   -d '{
     "name": "api-test-pg-cluster",
@@ -346,7 +352,7 @@ curl -X POST http://localhost:3000/ha-clusters/postgresql \
     "config": {
       "replicas": 3,
       "database": "testdb",
-      "username": "dbuser",
+      "username": "admin",
       "password": "postgres123",
       "storage": "1Gi"
     }
@@ -363,68 +369,48 @@ curl http://localhost:3000/ha-clusters/api-test-pg-cluster/status
   "cluster": {
     "name": "api-test-pg-cluster",
     "namespace": "dbaas-api-test-pg-ha",
-    "status": "Cluster in healthy state",
-    "instances": 3,
-    "readyInstances": 3,
-    "currentPrimary": "api-test-pg-cluster-2",
-    "phase": "Running",
+    "status": "Running",
+    "replicas": 3,
+    "ready": 3,
     "connections": {
-      "rw": "api-test-pg-cluster-rw:5432",
-      "ro": "api-test-pg-cluster-ro:5432", 
-      "r": "api-test-pg-cluster-r:5432",
-      "any": "api-test-pg-cluster-any:5432"
+      "master": "api-test-pg-cluster:5432",
+      "replica": "api-test-pg-cluster-repl:5432"
     }
   }
 }
 ```
 
-#### 3. 수동 Failover 트리거
-```bash
-curl -X POST http://localhost:3000/ha-clusters/api-test-pg-cluster/failover
-
-# 응답 예시
-{
-  "success": true,
-  "message": "Failover triggered successfully",
-  "failover": {
-    "cluster": "api-test-pg-cluster",
-    "newPrimary": "api-test-pg-cluster-3",
-    "triggeredAt": "2025-07-19T11:30:15.123Z"
-  }
-}
-```
-
-#### 4. 애플리케이션 연결 방법
+#### 3. 애플리케이션 연결 방법
 ```javascript
 // Node.js 애플리케이션에서 HA 클러스터 사용
 const { Pool } = require('pg');
 
-// 쓰기 작업용 (Primary만)
+// 쓰기 작업용 (Master)
 const writePool = new Pool({
-  host: 'api-test-pg-cluster-rw',
+  host: 'api-test-pg-cluster',
   port: 5432,
-  user: 'dbuser',
+  user: 'admin',
   password: 'postgres123',
   database: 'testdb'
 });
 
-// 읽기 작업용 (Standby들만)
+// 읽기 작업용 (Replica)
 const readPool = new Pool({
-  host: 'api-test-pg-cluster-ro',
+  host: 'api-test-pg-cluster-repl',
   port: 5432,
-  user: 'dbuser', 
+  user: 'admin', 
   password: 'postgres123',
   database: 'testdb'
 });
 
 // 사용 예시
 async function createOrder(orderData) {
-  // 쓰기는 Primary로
+  // 쓰기는 Master로
   await writePool.query('INSERT INTO orders (data) VALUES ($1)', [orderData]);
 }
 
 async function getProducts() {
-  // 읽기는 Standby로 (부하 분산)
+  // 읽기는 Replica로 (부하 분산)
   const result = await readPool.query('SELECT * FROM products');
   return result.rows;
 }
@@ -471,7 +457,7 @@ curl -X POST http://localhost:3000/instances/my-postgres/backup \
     "pvcName": "data-my-postgres-postgresql-local-0",
     "instanceType": "postgresql",
     "status": "completed",
-    "createdAt": "2025-07-19T09:02:15.262Z",
+    "createdAt": "2025-01-27T09:02:15.262Z",
     "size": "2Gi"
   }
 }
@@ -500,7 +486,7 @@ curl -X POST http://localhost:3000/instances/my-postgres/restore \
     "restoredFrom": {
       "sourceInstance": "my-postgres",
       "backupName": "daily-backup-001",
-      "restoredAt": "2025-07-19T09:07:02.406Z"
+      "restoredAt": "2025-01-27T09:07:02.406Z"
     }
   }
 }
@@ -522,7 +508,7 @@ curl http://localhost:3000/instances/my-postgres/backups
       "namespace": "dbaas-my-postgres",
       "status": "ready",
       "restoreSize": "2Gi",
-      "creationTime": "2025-07-19T09:02:10Z",
+      "creationTime": "2025-01-27T09:02:10Z",
       "sourcePVC": "data-my-postgres-postgresql-local-0"
     }
   ]
@@ -557,6 +543,37 @@ kubectl get volumesnapshots -n dbaas-my-postgres
 2. **보존 정책**: 7일 단기 + 30일 장기 보존
 3. **테스트 복구**: 정기적인 복구 테스트
 4. **모니터링**: 백업 성공/실패 알림
+
+## 🏗️ 프로젝트 구조
+
+```
+DBaas/
+├── 📁 backend/                    # Node.js API 서버
+│   ├── 📁 controllers/           # 비즈니스 로직 컨트롤러
+│   │   ├── InstanceController.js # 일반 인스턴스 관리
+│   │   ├── BackupController.js   # 백업/복구 관리
+│   │   └── HAClusterController.js # 🆕 HA 클러스터 관리
+│   ├── 📁 routes/                # API 라우트 정의
+│   │   ├── instances.js          # 인스턴스 API
+│   │   ├── ha-clusters.js        # HA 클러스터 API
+│   │   └── backups.js            # 백업 API
+│   ├── 📁 services/              # 비즈니스 서비스
+│   │   ├── k8s.js               # Kubernetes 연동
+│   │   ├── database.js          # 메타데이터 DB
+│   │   ├── backup.js            # 백업/복구 서비스
+│   │   └── zalandoOperatorService.js # Zalando Operator
+│   └── index.js                  # 서버 진입점
+├── 📁 helm-charts/               # Helm 차트
+│   ├── postgresql-local/         # PostgreSQL 차트
+│   ├── mysql-local/              # MySQL 차트
+│   └── mariadb-local/            # MariaDB 차트
+├── 📁 k8s/                       # Kubernetes 매니페스트
+│   └── operators/                # Operator 설정
+├── 📁 scripts/                   # 자동화 스크립트
+│   ├── setup.sh                  # 환경 설정
+│   └── test-api.sh               # API 테스트
+└── README.md                     # 프로젝트 문서
+```
 
 ## 🔧 문제 해결 (Troubleshooting)
 
@@ -614,6 +631,16 @@ curl -X POST http://localhost:3000/instances/recover \
   -d '{"name": "INSTANCE_NAME", "namespace": "NAMESPACE"}'
 ```
 
+#### 8. Zalando Operator 관련 문제
+```bash
+# Zalando PostgreSQL Operator 설치 확인
+kubectl get crd | grep postgresql
+kubectl get postgresql --all-namespaces
+
+# Operator 재설치 (필요시)
+kubectl apply -f https://raw.githubusercontent.com/zalando/postgres-operator/master/manifests/postgres-operator.yaml
+```
+
 ### 로그 확인
 
 #### API 서버 로그
@@ -634,6 +661,16 @@ helm list -A
 helm status <release-name> -n <namespace>
 ```
 
+#### Zalando PostgreSQL 클러스터 로그
+```bash
+# PostgreSQL 클러스터 상태 확인
+kubectl get postgresql -n <namespace>
+kubectl describe postgresql <cluster-name> -n <namespace>
+
+# Pod 로그 확인
+kubectl logs -f <cluster-name>-0 -n <namespace>
+```
+
 ## 🚧 알려진 제한사항
 
 1. **로컬 환경 전용**: 현재는 minikube 기반으로 로컬 개발용
@@ -642,6 +679,7 @@ helm status <release-name> -n <namespace>
 4. **모니터링 제한**: Prometheus/Grafana 연동 예정
 5. **UI 없음**: 현재는 CLI/API만 지원
 6. **네트워크 제한**: HA 클러스터는 클러스터 내부 접근만 가능
+7. **Zalando Operator 제한**: PostgreSQL 15 버전만 지원
 
 ## 📞 연락처
 
